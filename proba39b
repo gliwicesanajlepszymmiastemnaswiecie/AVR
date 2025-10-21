@@ -1,0 +1,229 @@
+;-----------------------------------------------
+; Definicje rejestrów dla cyfr
+.def Digit_0 = R2
+.def Digit_1 = R3
+.def Digit_2 = R4
+.def Digit_3 = R5
+
+.equ Digits_P = PORTB
+.equ Segments_P = PORTD
+
+;-----------------------------------------------
+; Definicja makra SET_DIGIT
+; Argument: numer cyfry 0..3
+;-----------------------------------------------
+.macro SET_DIGIT digitNum
+    ; wybór odpowiedniego rejestru Digit_X
+    cpi \digitNum, 0
+    breq _LoadDigit0
+    cpi \digitNum, 1
+    breq _LoadDigit1
+    cpi \digitNum, 2
+    breq _LoadDigit2
+    cpi \digitNum, 3
+    breq _LoadDigit3
+    rjmp _EndMacro
+
+_LoadDigit0:
+    mov R16, Digit_0
+    rjmp _Display
+
+_LoadDigit1:
+    mov R16, Digit_1
+    rjmp _Display
+
+_LoadDigit2:
+    mov R16, Digit_2
+    rjmp _Display
+
+_LoadDigit3:
+    mov R16, Digit_3
+    rjmp _Display
+
+_Display:
+    rcall DigitTo7segCode
+    ; ustawienie odpowiedniej cyfry (PB1–PB4)
+    ldi R19, (1 << (\digitNum + 1))
+    out Digits_P, R19
+    out Segments_P, R16
+    rcall Delay
+_EndMacro:
+.endmacro
+
+;-----------------------------------------------
+; Inicjalizacja portów
+;-----------------------------------------------
+ldi R16, 0b00011110      ; PB1–PB4 jako wyjścia
+out DDRB, R16
+ldi R16, 0xFF
+out DDRD, R16             ; PORTD jako wyjście dla segmentów
+
+;-----------------------------------------------
+; Test 1: cyfry „9876”
+;-----------------------------------------------
+ldi R16, 6
+mov Digit_0, R16
+ldi R16, 7
+mov Digit_1, R16
+ldi R16, 8
+mov Digit_2, R16
+ldi R16, 9
+mov Digit_3, R16
+
+;-----------------------------------------------
+; Pętla główna
+;-----------------------------------------------
+MainLoop:
+    SET_DIGIT 0
+    SET_DIGIT 1
+    SET_DIGIT 2
+    SET_DIGIT 3
+    rjmp MainLoop
+
+;-----------------------------------------------
+; Podprogram DigitTo7segCode
+; Wejście: R16 = cyfra 0–9
+; Wyjście: R16 = kod 7-seg
+;-----------------------------------------------
+DigitTo7segCode:
+    push ZH
+    push ZL
+    ldi ZH, high(Tablica * 2)
+    ldi ZL, low(Tablica * 2)
+    add ZL, R16
+    adc ZH, __zero_reg__  ; poprawne dodanie bez przeniesienia
+    lpm R16, Z
+    pop ZL
+    pop ZH
+    ret
+
+;-----------------------------------------------
+; Tabela kodów 7-segmentowych 0–9
+;-----------------------------------------------
+Tablica:
+    .db 0b00111111  ; 0
+    .db 0b00000110  ; 1
+    .db 0b01011011  ; 2
+    .db 0b01001111  ; 3
+    .db 0b01100110  ; 4
+    .db 0b01101101  ; 5
+    .db 0b01111101  ; 6
+    .db 0b00000111  ; 7
+    .db 0b01111111  ; 8
+    .db 0b01101111  ; 9
+
+;-----------------------------------------------
+; Opóźnienia
+;-----------------------------------------------
+Delay:
+    ldi R16, 5
+    rcall DelayInMs
+    ret
+
+DelayInMs:
+    push R16
+DelayInMs_loop:
+    rcall DelayOneMs
+    dec R16
+    brne DelayInMs_loop
+    pop R16
+    ret
+
+DelayOneMs:
+    push R24
+    push R25
+    ldi R24, $35
+    ldi R25, $F8
+Inner_loop:
+    subi R24, $FF
+    sbci R25, $FF
+    brne Inner_loop
+    pop R25
+    pop R24
+    ret
+.equ Digits_P = PORTB
+.equ Segments_P = PORTD
+
+.def Digit_0 = R2
+.def Digit_1 = R3
+.def Digit_2 = R4
+.def Digit_3 = R5
+
+; Definicja makra SET_DIGIT
+.macro SET_DIGIT
+    ldi R19, 1 << (@0 + 1)  ; Ustawienie maski dla odpowiedniego wyświetlacza
+    mov R16, R@0            ; Ładowanie wartości cyfry z odpowiedniego rejestru
+    rcall DigitTo7segCode   ; Konwersja na kod 7-segment
+    out Segments_P, R16     ; Wyświetlenie segmentów
+    out Digits_P, R19       ; Aktywacja wyświetlacza
+    rcall Delay             ; Opóźnienie
+.endmacro
+
+ldi R16, 0b00011110  ; Ustawienie pinów PB1-PB4 jako wyjścia dla cyfr
+out DDRB, R16
+
+; Test 1: „3210”
+ldi R16, 9
+mov Digit_0, R16
+
+ldi R16, 8
+mov Digit_1, R16
+
+ldi R16, 7
+mov Digit_2, R16
+
+ldi R16, 6
+mov Digit_3, R16
+
+Mainloop:
+    SET_DIGIT 0
+    SET_DIGIT 1
+    SET_DIGIT 2
+    SET_DIGIT 3
+    rjmp Mainloop
+
+Delay:
+    ldi R16, low(5)
+    ldi R17, high(5)
+    rcall DelayInMs
+    ret
+
+DelayInMs:
+    push R16
+    push R17
+
+    mov R24, R16
+    mov R25, R17
+DelayInMs_loop:
+    rcall DelayOneMs
+    sbiw R25:R24, 1
+    brne DelayInMs_loop
+    pop R17
+    pop R16
+    ret
+
+DelayOneMs:
+    push R24
+    push R25
+
+    ldi R24, $35
+    ldi R25, $F8
+Inner_loop:
+    subi R24, $FF
+    sbci R25, $FF
+    brne Inner_loop
+    
+    pop R25
+    pop R24 
+    ret
+
+DigitTo7segCode:
+    ldi ZL, low(Tablica<<1) 
+    ldi ZH, high(Tablica<<1)
+
+    add ZL, R16
+    adc ZH, R1
+    lpm R16, Z
+    ret
+
+Tablica: .db 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01101111
