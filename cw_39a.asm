@@ -6,10 +6,10 @@
 .def Digit_2 = R4
 .def Digit_3 = R5
 
-ldi R16, 0b00011110  ; Ustawienie pinÛw PB1-PB4 jako wyjúcia dla cyfr
+ldi R16, 0b00011110  ; Ustawienie pin√≥w PB1-PB4 jako wyj≈ìcia dla cyfr
 out DDRB, R16
 
-; Test 1: Ñ3210î
+; Test 1: ‚Äû3210‚Äù
 ldi R16, 0
 mov Digit_0, R16
 
@@ -22,21 +22,8 @@ mov Digit_2, R16
 ldi R16, 3
 mov Digit_3, R16
 
-; Test 2: Ñ7654î
-; ldi Digit_0, 4
-; ldi Digit_1, 5
-; ldi Digit_2, 6
-; ldi Digit_3, 7
-
-; Test 3: Ñ9876î
-; ldi Digit_0, 6
-; ldi Digit_1, 7
-; ldi Digit_2, 8
-; ldi Digit_3, 9
-
-
-
-
+; Test 2: ‚Äû7654‚Äù
+; Test 3: ‚Äû9876‚Äù
 
 Mainloop:
 	ldi R20, 4
@@ -133,3 +120,4 @@ DigitTo7segCode:
 	ret
 
 Tablica: .db 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100100, 0b01011101, 0b01111101, 0b00000111, 0b011111111, 0b01101111
+
